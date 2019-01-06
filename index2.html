@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="//code.jquery.com/jquery-1.9.1.min.js"></script>
+ <meta charset="utf-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+<title>waterfull-lazyload-ajax demo</title>
+<meta name="description" content="">
+<meta name="keywords" content="">
+<link href="" rel="stylesheet">
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    ul,li {
+      list-style: none;
+    }
+    
+    .clearfix:after {
+      content: '';
+      display: block;
+      clear: both;
+    }
+    #pic-ct {
+      position: relative;
+    }
+    #pic-ct .item {
+      position: absolute;
+      padding: 0 0 10px 0;
+      width: 280px;
+      margin: 10px;
+      border: 1px solid #dfdfdf;
+      background: #fff;
+      transition: all .8s;
+    }
+    #pic-ct .item img {
+      margin: 10px;
+      width: 260px;
+    }
+    #pic-ct .item .header {
+      height: 25px;
+      margin: 0 12px;
+      border-bottom: 1px solid #dbdbdb;
+    }
+    #pic-ct .item .desp {
+      font-size: 12px;
+      line-height: 1.8;
+      margin: 10px 15px 0;
+      color: #777371;
+    }
+    .hide {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="ct-waterfall">
+    <ul id="pic-ct" class="ct clearfix">
+
+      <li class="item hide"></li>
+    </ul>
+    <div id="load"></div>
+  </div>
+  <script>
+    var curPage = 1,
+        perPageCount = 9,
+        interval = 100,
+        clock,
+        itemArr,
+        colNum
+
+    reset()
+    start()
+
+    function reset(){
+      itemArr = [],
+      colNum = Math.floor($('#pic-ct').width()/$('.item').outerWidth(true))
+      for(var i=0; i<colNum; i++){
+        itemArr.push(0)
+      }
+    }
+    function start(){
+      getData(function(newList){
+        $(newList).each(function(idx, item){
+          var $node = getNode(item)
+          $node.find('img').on('load', function(){
+            $('#pic-ct').append($node)
+            WaterFall($node)
+          })
+        })
+      })
+    }
+    $(window).on('resize', function(){
+      reset()
+      $('.item').each(function(){
+        WaterFall($(this))
+      })
+    })
+    $(window).on('scroll', function(){
+      if(clock){
+        clearTimeout(clock);
+      }
+      clock = setTimeout(function(){
+        if( isVisible($('#load')) ){
+          start()
+        }
+      }, interval);
+    })
+
+    function getData(callback){
+      $.ajax({
+        url: 'http://platform.sina.com.cn/slide/album_tech',
+        dataType: 'jsonp',
+        jsonp: 'jsoncallback',
+        data:{
+          app_key: '1271687855',
+          num: perPageCount,
+          page: curPage
+        }
+      }).done(function(ret){
+        if(ret && ret.status && ret.status.code === "0"){
+          callback(ret.data)
+          curPage++
+        }else{
+          console.log('error')
+        }
+      })
+    }
+
+    function getNode(item){
+      console.log(item)
+      var tpl = ''
+		  tpl += '<li class="item">'
+	  	tpl += ' <a href="'+ item.url +'" class="link"><img src="' + item.img_url + '" alt=""></a>'
+		  tpl += ' <h4 class="header">'+ item.short_name +'</h4>'
+		  tpl += '<p class="desp">'+item.short_intro+'</p>'
+      tpl += '</li>'
+      return $(tpl)
+    }
+
+    function WaterFall($node){
+      var minHeight = Math.min.apply(null, itemArr),
+          minIdx = itemArr.indexOf(minHeight)
+      $node.css({
+        left: $('.item').outerWidth(true) * minIdx,
+        top: minHeight
+      })
+      itemArr[minIdx] += $node.outerHeight(true)
+      $('#pic-ct').height(Math.max.apply(null, itemArr))
+    }
+
+    function isVisible($el){
+      if($el.offset().top < $(window).height() + $(window).scrollTop() + 500){
+        return true
+      }else{
+        return false
+      }
+    }
+  </script>
+</body>>
